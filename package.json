@@ -4,7 +4,8 @@
   "description": "Generates change log between commit hashes and creates a clean markdown file with prefix sections",
   "main": "cli.js",
   "scripts": {
-    "test": "./cli.js"
+    "app": "./cli.js",
+    "test": "xo"
   },
   "bin": {
     "clog": "./cli.js",
@@ -19,7 +20,23 @@
   "dependencies": {
     "chalk": "^2.4.1",
     "fs": "0.0.1-security",
-    "node-cmd": "^3.0.0",
-    "inquirer": "^6.2.0"
+    "inquirer": "^6.2.0",
+    "node-cmd": "^3.0.0"
+  },
+  "devDependencies": {
+    "husky": "^1.1.0",
+    "xo": "^0.23.0"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm test"
+    }
+  },
+  "xo": {
+    "prettier": true,
+    "space": false,
+    "semicolon": false,
+    "singleQuote": true,
+    "trailingComma": false
   }
 }
