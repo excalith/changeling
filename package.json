@@ -1,0 +1,25 @@
+{
+  "name": "changelog",
+  "version": "1.0.0",
+  "description": "Generates change log between commit hashes and creates a clean markdown file with prefix sections",
+  "main": "cli.js",
+  "scripts": {
+    "test": "./cli.js"
+  },
+  "bin": {
+    "clog": "./cli.js",
+    "changelog": "./cli.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/excalith/changelog"
+  },
+  "author": "Can Cellek",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^2.4.1",
+    "fs": "0.0.1-security",
+    "node-cmd": "^3.0.0",
+    "inquirer": "^6.2.0"
+  }
+}
