@@ -272,30 +272,10 @@ function getFirstWord(str) {
 
 // Validate Changelog Title
 function validateTitle(str) {
-	if (str === undefined) {
-		return false
-	}
-
-	if (str === '') {
-		return false
-	}
-
-	return true
+	return !(str === undefined || str === '')
 }
 
 // Validate Commit Hash
 function validateHash(str) {
-	if (str === undefined) {
-		return false
-	}
-
-	if (str.length < 7) {
-		return false
-	}
-
-	if (str.match('[^a-z A-Z 0-9_]')) {
-		return false
-	}
-
-	return true
+	return !(str === undefined || str.length < 7 || str.match('[^a-z A-Z 0-9_]'))
 }
