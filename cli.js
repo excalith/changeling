@@ -1,41 +1,69 @@
 #!/usr/bin/env node
 const fs = require('fs')
+const Configstore = require('configstore')
+const opn = require('opn')
 const chalk = require('chalk')
 const cmd = require('node-cmd')
 const inquirer = require('inquirer')
+const pkg = require('./package.json')
 
-// Filenames
-const tempLog = 'tempLog.txt'
-const changeLog = 'Changelog.md'
-
-// Commit Prefix Arrays
-const add = []
-const remove = []
-const improve = []
-const change = []
-const update = []
-const refactor = []
-const fix = []
+const conf = new Configstore(pkg.name, {
+	prefixes: ['Add', 'Remove', 'Improve', 'Change', 'Update', 'Refactor', 'Fix'],
+	defaultFileName: 'CHANGELOG.md',
+	tempFileName: 'tempLog.txt'
+})
 
 // User Parameters
+const prefixDictionary = {}
 let title = ''
 let fromHash = ''
 let toHash = ''
 let isAppend = false
 let log = ''
 
-start()
+checkArguments()
+
+// Check Arguments
+function checkArguments() {
+	const type = process.argv[2]
+
+	if (type === '-h' || type === '--help') {
+		showHelp()
+	} else if (type === '-s' || type === '--settings') {
+		showSettings()
+	} else {
+		run()
+	}
+}
+
+function showHelp() {
+	console.log('')
+	console.log(chalk.magenta.bold('Changeling Help'))
+	console.log('')
+	console.log('Commands:')
+	console.log('  clog		Run Changeling')
+	console.log('  clog -s 	Open Settings File')
+	console.log('  clog -h 	Display This Help')
+	console.log('')
+}
+
+function showSettings() {
+	console.log('Opening config file: ' + conf.path)
+	opn(conf.path, {
+		wait: false
+	})
+}
 
 // Get Required Parameters
-function start() {
-	console.log(chalk.white.bold('\nSettings will ask Changelog details'))
+function run() {
+	console.log(chalk.magenta.bold('\nSettings will ask Changelog details'))
 	console.log('')
 	inquirer
 		.prompt([
 			{
-				message: 'Milestone Title:',
+				message: 'Title:',
 				type: 'input',
-				name: 'milestoneTitle',
+				name: 'logTitle',
 				validate: validateTitle
 			},
 			{
@@ -65,9 +93,9 @@ function start() {
 		])
 		.then(answers => {
 			if (answers.isConfirmed === 'No') {
-				start()
+				run()
 			} else {
-				title = answers.milestoneTitle
+				title = answers.logTitle
 				fromHash = answers.fromHash
 				toHash = answers.toHash
 				isAppend = answers.shouldAppend === 'Append'
@@ -78,7 +106,7 @@ function start() {
 		})
 }
 
-// Save Git Log Output To Temp Log File
+// Run Git Log And Save To Temp Log File
 function runCommand() {
 	// Generate Command
 	const command =
@@ -111,10 +139,17 @@ function runCommand() {
 
 // Read From Temp Log File
 function readLog() {
+	// Get Prefixes From Config
+	const prefixes = conf.get('prefixes')
+	prefixes.forEach(prefix => {
+		prefixDictionary[prefix] = []
+	})
+
 	// Check Temp Log
-	if (fs.existsSync(tempLog)) {
+	const tempFile = conf.get('tempFileName')
+	if (fs.existsSync(tempFile)) {
 		// Read from Temp Log
-		const lines = fs.readFileSync(tempLog, 'utf8').split('\n')
+		const lines = fs.readFileSync(tempFile, 'utf8').split('\n')
 		const lineCount = lines.length
 		let currentCount = 0
 
@@ -123,43 +158,17 @@ function readLog() {
 
 		lines.forEach(line => {
 			currentCount++
-			if (getFirstWord(line).includes('Add')) {
-				add.push(line)
-			} else if (getFirstWord(line).includes('Remove')) {
-				remove.push(line)
-			} else if (getFirstWord(line).includes('Improve')) {
-				improve.push(line)
-			} else if (getFirstWord(line).includes('Change')) {
-				change.push(line)
-			} else if (getFirstWord(line).includes('Update')) {
-				update.push(line)
-			} else if (getFirstWord(line).includes('Refactor')) {
-				refactor.push(line)
-			} else if (getFirstWord(line).includes('Fix')) {
-				fix.push(line)
-			}
 
+			// Get Add Line To Prefix Dictionary
+			const prefix = getFirstWord(line)
+			prefixDictionary[prefix].push(line)
+
+			// If Finished Log Output
 			if (currentCount === lineCount) {
-				if (add.length > 0) {
-					console.log('   ' + add.length + ' adds')
-				}
-				if (improve.length > 0) {
-					console.log('   ' + improve.length + ' improvements')
-				}
-				if (change.length > 0) {
-					console.log('   ' + change.length + ' changes')
-				}
-				if (update.length > 0) {
-					console.log('   ' + update.length + ' updates')
-				}
-				if (refactor.length > 0) {
-					console.log('   ' + refactor.length + ' refactoring')
-				}
-				if (remove.length > 0) {
-					console.log('   ' + remove.length + ' removes')
-				}
-				if (fix.length > 0) {
-					console.log('   ' + fix.length + ' fixes')
+				const keys = Object.keys(prefixDictionary)
+				for (let i = 0; i < keys.length; i++) {
+					const entryCount = prefixDictionary[keys[i]].length
+					if (entryCount > 0) console.log('   ' + entryCount + ' ' + keys[i])
 				}
 
 				generateLogData()
@@ -179,60 +188,16 @@ function generateLogData() {
 	log +=
 		'\n**Showing Commits Between `' + fromHash + '` and `' + toHash + '`**\n'
 
-	if (add.length > 0) {
-		log += '\n## Added\n'
+	const keys = Object.keys(prefixDictionary)
+	for (let i = 0; i < keys.length; i++) {
+		const entryCount = prefixDictionary[keys[i]].length
 
-		add.forEach(line => {
-			log += formatLogEntry(line)
-		})
-	}
-
-	if (improve.length > 0) {
-		log += '\n## Improved\n'
-
-		improve.forEach(line => {
-			log += formatLogEntry(line)
-		})
-	}
-
-	if (change.length > 0) {
-		log += '\n## Changed\n'
-
-		change.forEach(line => {
-			log += formatLogEntry(line)
-		})
-	}
-
-	if (update.length > 0) {
-		log += '\n## Changed\n'
-
-		update.forEach(line => {
-			log += formatLogEntry(line)
-		})
-	}
-
-	if (refactor.length > 0) {
-		log += '\n## Refactored\n'
-
-		refactor.forEach(line => {
-			log += formatLogEntry(line)
-		})
-	}
-
-	if (remove.length > 0) {
-		log += '\n## Removed\n'
-
-		remove.forEach(line => {
-			log += formatLogEntry(line)
-		})
-	}
-
-	if (fix.length > 0) {
-		log += '\n## Fixed\n'
-
-		fix.forEach(line => {
-			log += formatLogEntry(line)
-		})
+		if (entryCount > 0) {
+			log += '\n## ' + keys[i] + '\n' // Prefix Title
+			prefixDictionary[keys[i]].forEach(entry => {
+				log += formatLogEntry(entry)
+			})
+		}
 	}
 
 	console.log('   Done')
@@ -242,17 +207,17 @@ function generateLogData() {
 // Save Generated Data As Markdown
 function saveLog() {
 	console.log(chalk.magenta('\n4. Saving Changelog'))
-
+	const fileName = conf.get('defaultFileName')
 	// If Append Is True, Append To Changelog.md
 	if (isAppend) {
-		if (fs.existsSync(changeLog)) {
+		if (fs.existsSync(fileName)) {
 			console.log('   Appended into Changelog.md')
-			fs.appendFileSync(changeLog, log)
+			fs.appendFileSync(fileName, log)
 		}
 		// If Append Is False, Create A New Changelog
 		else {
-			console.log('   Changelog.md not found, saving as new')
-			const stream = fs.createWriteStream(changeLog)
+			console.log(chalk.red('   Changelog.md not found, saving as new'))
+			const stream = fs.createWriteStream(fileName)
 			stream.once('open', () => {
 				stream.write(log)
 				stream.end()
@@ -271,7 +236,9 @@ function saveLog() {
 	fs.unlink('tempLog.txt', err => {
 		if (err) {
 			return console.log(
-				chalk.red('\n   Could not remove temporary log file\n   ' + err)
+				chalk.red(
+					chalk.red('\n   Could not remove temporary log file\n   ' + err)
+				)
 			)
 		}
 	})
@@ -279,7 +246,7 @@ function saveLog() {
 
 // Log Entry Format
 function formatLogEntry(line) {
-	return '- ' + line + '\n'
+	return '* ' + line + '\n'
 }
 
 // Get The First Word For Checking Prefixes

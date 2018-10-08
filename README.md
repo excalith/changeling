@@ -25,7 +25,7 @@
 
 <hr/>
 
-**Changeling** helps you to generate changelogs between commit hashes easily. Depending on your commit message prefixes, your changelog will be created with markdown sections and commit hash links to your source.
+**Changeling** helps you to generate changelogs between commit hashes easily. Depending on your commit message prefixes, your changelog will be created with markdown sections and commit messages with corresponding hashes.
 
 ## How To Install:
 
@@ -41,7 +41,17 @@
 ## How To Use:
 In order to use the app, please follow **How To Install** steps above.
 
-When you complete installation, you can run the app by typing `clog` or `changelog` within a git repository. App will ask for required fields for your changelog.
+When you complete installation, you can run commands below
+
+### Available Commands:
+| _Command_ | _Description_                |
+| --------- | ---------------------------- |
+| clog      | Run Changeling               |
+| clog -s   | Open Settings File In Editor |
+| clog -h   | Display This Help            |
+
+### Generating Log File
+Whenever you run `clog` app will run by default. You need to fill required fields to generate your changelog. When you are done, changelog will be saved in your git directory.
 
 | _Settings_       | _Description_                                                                       |
 | ---------------- | ----------------------------------------------------------------------------------- |
@@ -51,16 +61,22 @@ When you complete installation, you can run the app by typing `clog` or `changel
 | Append or Create | If you generated a changelog before, you can append to it or create a new changelog |
 | Check Settings   | Check your settings before creating                                                 |
 
-The changelog will be located in your git directory
 
-### List Of Prefixes
-* Add
-* Remove
-* Improve
-* Change
-* Update
-* Refactor
-* Fix
+### Settings
+You can update settings by using `clog -s` command. This will open config file within your beloved editor.
+Default Settings:
+
+| _Key_           | _Value_      |
+| --------------- | ------------ |
+| prefixes        | Add          |
+|                 | Remove       |
+|                 | Improve      |
+|                 | Change       |
+|                 | Update       |
+|                 | Refactor     |
+|                 | Fix          |
+| defaultFileName | Changelog.md |
+| tempFileName    | tempLog.txt  |
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
