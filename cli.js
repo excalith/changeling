@@ -13,6 +13,7 @@ const add = []
 const remove = []
 const improve = []
 const change = []
+const update = []
 const refactor = []
 const fix = []
 
@@ -124,20 +125,17 @@ function readLog() {
 			currentCount++
 			if (getFirstWord(line).includes('Add')) {
 				add.push(line)
-			}
-			if (getFirstWord(line).includes('Remove')) {
+			} else if (getFirstWord(line).includes('Remove')) {
 				remove.push(line)
-			}
-			if (getFirstWord(line).includes('Improve')) {
+			} else if (getFirstWord(line).includes('Improve')) {
 				improve.push(line)
-			}
-			if (getFirstWord(line).includes('Change')) {
+			} else if (getFirstWord(line).includes('Change')) {
 				change.push(line)
-			}
-			if (getFirstWord(line).includes('Refactor')) {
+			} else if (getFirstWord(line).includes('Update')) {
+				update.push(line)
+			} else if (getFirstWord(line).includes('Refactor')) {
 				refactor.push(line)
-			}
-			if (getFirstWord(line).includes('Fix')) {
+			} else if (getFirstWord(line).includes('Fix')) {
 				fix.push(line)
 			}
 
@@ -145,6 +143,7 @@ function readLog() {
 				console.log('   ' + add.length + ' adds')
 				console.log('   ' + improve.length + ' improvements')
 				console.log('   ' + change.length + ' changes')
+				console.log('   ' + update.length + ' updates')
 				console.log('   ' + refactor.length + ' refactoring')
 				console.log('   ' + remove.length + ' removes')
 				console.log('   ' + fix.length + ' fixes')
@@ -152,8 +151,8 @@ function readLog() {
 				generateLogData()
 			}
 		})
-		// If Temp Log does not exist, throw error
 	} else {
+		// If Temp Log does not exist, throw error
 		console.log(chalk.red('   Git log not found'))
 	}
 }
@@ -184,6 +183,13 @@ function generateLogData() {
 		log += '\n## Changed\n'
 	}
 	change.forEach(line => {
+		log += formatLogEntry(line)
+	})
+
+	if (update.length > 0) {
+		log += '\n## Changed\n'
+	}
+	update.forEach(line => {
 		log += formatLogEntry(line)
 	})
 
