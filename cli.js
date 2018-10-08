@@ -119,7 +119,7 @@ function readLog() {
 		let currentCount = 0
 
 		console.log(chalk.magenta('\n2. Reading Output'))
-		console.log('   ' + lineCount + ' lines of commit')
+		console.log('   Total Commits: ' + lineCount + '\n')
 
 		lines.forEach(line => {
 			currentCount++
@@ -140,13 +140,27 @@ function readLog() {
 			}
 
 			if (currentCount === lineCount) {
-				console.log('   ' + add.length + ' adds')
-				console.log('   ' + improve.length + ' improvements')
-				console.log('   ' + change.length + ' changes')
-				console.log('   ' + update.length + ' updates')
-				console.log('   ' + refactor.length + ' refactoring')
-				console.log('   ' + remove.length + ' removes')
-				console.log('   ' + fix.length + ' fixes')
+				if (add.length > 0) {
+					console.log('   ' + add.length + ' adds')
+				}
+				if (improve.length > 0) {
+					console.log('   ' + improve.length + ' improvements')
+				}
+				if (change.length > 0) {
+					console.log('   ' + change.length + ' changes')
+				}
+				if (update.length > 0) {
+					console.log('   ' + update.length + ' updates')
+				}
+				if (refactor.length > 0) {
+					console.log('   ' + refactor.length + ' refactoring')
+				}
+				if (remove.length > 0) {
+					console.log('   ' + remove.length + ' removes')
+				}
+				if (fix.length > 0) {
+					console.log('   ' + fix.length + ' fixes')
+				}
 
 				generateLogData()
 			}
