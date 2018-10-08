@@ -167,52 +167,59 @@ function generateLogData() {
 
 	if (add.length > 0) {
 		log += '\n## Added\n'
+
+		add.forEach(line => {
+			log += formatLogEntry(line)
+		})
 	}
-	add.forEach(line => {
-		log += formatLogEntry(line)
-	})
 
 	if (improve.length > 0) {
 		log += '\n## Improved\n'
+
+		improve.forEach(line => {
+			log += formatLogEntry(line)
+		})
 	}
-	improve.forEach(line => {
-		log += formatLogEntry(line)
-	})
 
 	if (change.length > 0) {
 		log += '\n## Changed\n'
+
+		change.forEach(line => {
+			log += formatLogEntry(line)
+		})
 	}
-	change.forEach(line => {
-		log += formatLogEntry(line)
-	})
 
 	if (update.length > 0) {
 		log += '\n## Changed\n'
+
+		update.forEach(line => {
+			log += formatLogEntry(line)
+		})
 	}
-	update.forEach(line => {
-		log += formatLogEntry(line)
-	})
 
 	if (refactor.length > 0) {
 		log += '\n## Refactored\n'
+
+		refactor.forEach(line => {
+			log += formatLogEntry(line)
+		})
 	}
-	refactor.forEach(line => {
-		log += formatLogEntry(line)
-	})
 
 	if (remove.length > 0) {
 		log += '\n## Removed\n'
+
+		remove.forEach(line => {
+			log += formatLogEntry(line)
+		})
 	}
-	remove.forEach(line => {
-		log += formatLogEntry(line)
-	})
 
 	if (fix.length > 0) {
 		log += '\n## Fixed\n'
+
+		fix.forEach(line => {
+			log += formatLogEntry(line)
+		})
 	}
-	fix.forEach(line => {
-		log += formatLogEntry(line)
-	})
 
 	console.log('   Done')
 	saveLog()
