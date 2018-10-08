@@ -24,7 +24,7 @@
     "node-cmd": "^3.0.0"
   },
   "devDependencies": {
-    "husky": "^1.1.0",
+    "husky": "^1.1.1",
     "xo": "^0.23.0"
   },
   "husky": {
