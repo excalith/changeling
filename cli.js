@@ -59,27 +59,25 @@ function showSettings() {
 
 // Fetch All Tags For Selection
 async function fetchTags() {
-	console.log(chalk.magenta.bold('\nFetching Tags'))
 	tags = await git.listTags({dir: '.'})
-	console.log('   Done')
 	run()
 }
 
 // Get Required Parameters
 function run() {
-	console.log(chalk.magenta.bold('\nSettings will ask Changelog details'))
+	console.log(chalk.magenta.bold('\n1. Generate Settings'))
 	inquirer
 		.prompt([
 			{
 				message: 'From Version:',
 				type: 'list',
-				name: 'fromHash',
+				name: 'fromTag',
 				choices: tags
 			},
 			{
 				message: 'To Version:',
 				type: 'list',
-				name: 'toHash',
+				name: 'toTag',
 				choices: tags
 			},
 			{
@@ -93,8 +91,8 @@ function run() {
 			if (answers.isConfirmed === 'No') {
 				run()
 			} else {
-				fromCommit = answers.fromHash
-				toCommit = answers.toHash
+				fromCommit = answers.fromTag
+				toCommit = answers.toTag
 				console.log('')
 				runCommand()
 			}
@@ -110,10 +108,19 @@ async function runCommand() {
 		prefixDictionary[prefix] = []
 	})
 
-	commits = await git.log({dir: '.', since: fromCommit})
+	const fromData = await git.log({dir: '.', since: fromCommit, ref: fromCommit})
+	const fromHash = await fromData[0].committer.timestamp
+	console.log(fromHash)
+
+	const toData = await git.log({dir: '.', since: toCommit, ref: toCommit})
+	const toHash = await toData[0].oid
+	console.log(toHash)
+
+	commits = await git.log({dir: '.', since: fromHash, ref: toHash})
 
 	let currentCount = 0
 	commits.forEach(commit => {
+		console.log(commit.message)
 		currentCount++
 
 		const logMessage = commit.message.split('\n').shift()
