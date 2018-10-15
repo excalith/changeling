@@ -1,6 +1,6 @@
 {
   "name": "changeling",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Generates changelogs between commit hashes and creates a clean markdown file sections from commit message prefixes",
   "main": "cli.js",
   "scripts": {
@@ -26,7 +26,9 @@
   "devDependencies": {
     "configstore": "^4.0.0",
     "husky": "^1.1.1",
+    "isomorphic-git": "^0.37.3",
     "opn": "^5.4.0",
+    "promise": "^8.0.2",
     "xo": "^0.23.0"
   },
   "husky": {

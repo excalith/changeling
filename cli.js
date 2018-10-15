@@ -3,23 +3,24 @@ const fs = require('fs')
 const Configstore = require('configstore')
 const opn = require('opn')
 const chalk = require('chalk')
-const cmd = require('node-cmd')
 const inquirer = require('inquirer')
+const git = require('isomorphic-git')
 const pkg = require('./package.json')
+
+git.plugins.set('fs', fs)
 
 const conf = new Configstore(pkg.name, {
 	prefixes: ['Add', 'Remove', 'Improve', 'Change', 'Update', 'Refactor', 'Fix'],
-	defaultFileName: 'CHANGELOG.md',
-	tempFileName: 'tempLog.txt'
+	defaultFileName: 'CHANGELOG.md'
 })
 
 // User Parameters
 const prefixDictionary = {}
-let title = ''
-let fromHash = ''
-let toHash = ''
-let isAppend = false
-let log = ''
+let tags
+let fromCommit = ''
+let toCommit = ''
+let commits
+let data = ''
 
 checkArguments()
 
@@ -32,10 +33,11 @@ function checkArguments() {
 	} else if (type === '-s' || type === '--settings') {
 		showSettings()
 	} else {
-		run()
+		fetchTags()
 	}
 }
 
+// Show Help
 function showHelp() {
 	console.log('')
 	console.log(chalk.magenta.bold('Changeling Help'))
@@ -47,6 +49,7 @@ function showHelp() {
 	console.log('')
 }
 
+// Show Config JSON File
 function showSettings() {
 	console.log('Opening config file: ' + conf.path)
 	opn(conf.path, {
@@ -54,35 +57,30 @@ function showSettings() {
 	})
 }
 
+// Fetch All Tags For Selection
+async function fetchTags() {
+	console.log(chalk.magenta.bold('\nFetching Tags'))
+	tags = await git.listTags({dir: '.'})
+	console.log('   Done')
+	run()
+}
+
 // Get Required Parameters
 function run() {
 	console.log(chalk.magenta.bold('\nSettings will ask Changelog details'))
-	console.log('')
 	inquirer
 		.prompt([
 			{
-				message: 'Title:',
-				type: 'input',
-				name: 'logTitle',
-				validate: validateTitle
-			},
-			{
-				message: 'From Commit Hash:',
-				type: 'input',
-				name: 'fromHash',
-				validate: validateHash
-			},
-			{
-				message: 'To Commit Hash:',
-				type: 'input',
-				name: 'toHash',
-				validate: validateHash
-			},
-			{
-				message: 'Append or Create As New Changelog?',
+				message: 'From Version:',
 				type: 'list',
-				name: 'shouldAppend',
-				choices: ['Append', 'Create']
+				name: 'fromHash',
+				choices: tags
+			},
+			{
+				message: 'To Version:',
+				type: 'list',
+				name: 'toHash',
+				choices: tags
 			},
 			{
 				message: 'Are your settings correct?',
@@ -95,107 +93,62 @@ function run() {
 			if (answers.isConfirmed === 'No') {
 				run()
 			} else {
-				title = answers.logTitle
-				fromHash = answers.fromHash
-				toHash = answers.toHash
-				isAppend = answers.shouldAppend === 'Append'
-
+				fromCommit = answers.fromHash
+				toCommit = answers.toHash
 				console.log('')
 				runCommand()
 			}
 		})
 }
 
-// Run Git Log And Save To Temp Log File
-function runCommand() {
-	// Generate Command
-	const command =
-		"git log --no-merges --date=short --oneline --pretty=format:'%s *`(#%h)`*' " +
-		fromHash +
-		'...' +
-		toHash +
-		' > tempLog.txt'
+async function runCommand() {
+	console.log(chalk.magenta('\n2. Reading Log Meta Data'))
 
-	// Run Command
-	cmd.get(command, err => {
-		console.log('')
-		if (err) {
-			console.log(chalk.red('\n   Could not run command\n   ' + err))
-			// Remove Temp log
-			fs.unlink('tempLog.txt', err => {
-				if (err) {
-					return console.log(
-						chalk.red('\n   Could not remove temporary log file\n   ' + err)
-					)
-				}
-			})
-		} else {
-			console.log(chalk.magenta('1. Running Git Log'))
-			console.log('   ' + command)
-			readLog()
-		}
-	})
-}
-
-// Read From Temp Log File
-function readLog() {
 	// Get Prefixes From Config
 	const prefixes = conf.get('prefixes')
 	prefixes.forEach(prefix => {
 		prefixDictionary[prefix] = []
 	})
 
-	// Check Temp Log
-	const tempFile = conf.get('tempFileName')
-	if (fs.existsSync(tempFile)) {
-		// Read from Temp Log
-		const lines = fs.readFileSync(tempFile, 'utf8').split('\n')
-		const lineCount = lines.length
-		let currentCount = 0
+	commits = await git.log({dir: '.', since: fromCommit})
 
-		console.log(chalk.magenta('\n2. Reading Output'))
-		console.log('   Total Commits: ' + lineCount + '\n')
+	let currentCount = 0
+	commits.forEach(commit => {
+		currentCount++
 
-		lines.forEach(line => {
-			currentCount++
+		const logMessage = commit.message.split('\n').shift()
+		const logPrefix = getFirstWord(logMessage)
 
-			// Get Add Line To Prefix Dictionary
-			const prefix = getFirstWord(line)
-			prefixDictionary[prefix].push(line)
+		if (Array.isArray(prefixDictionary[logPrefix])) {
+			prefixDictionary[logPrefix].push(logMessage)
+		}
 
-			// If Finished Log Output
-			if (currentCount === lineCount) {
-				const keys = Object.keys(prefixDictionary)
-				for (let i = 0; i < keys.length; i++) {
-					const entryCount = prefixDictionary[keys[i]].length
-					if (entryCount > 0) console.log('   ' + entryCount + ' ' + keys[i])
-				}
-
-				generateLogData()
+		if (currentCount === commits.length) {
+			const keys = Object.keys(prefixDictionary)
+			for (let i = 0; i < keys.length; i++) {
+				const entryCount = prefixDictionary[keys[i]].length
+				if (entryCount > 0) console.log('   ' + entryCount + ' ' + keys[i])
 			}
-		})
-	} else {
-		// If Temp Log does not exist, throw error
-		console.log(chalk.red('   Git log not found'))
-	}
+
+			generateLogData()
+		}
+	})
 }
 
 // Generate Formatted Log Data
 function generateLogData() {
 	console.log(chalk.magenta('\n3. Generating Data'))
 
-	log += '\n# ' + title
-	log +=
-		'\n**Showing Commits Between `' + fromHash + '` and `' + toHash + '`**\n'
+	data += '\n## ' + toCommit
 
 	const keys = Object.keys(prefixDictionary)
 	for (let i = 0; i < keys.length; i++) {
 		const entryCount = prefixDictionary[keys[i]].length
 
 		if (entryCount > 0) {
-			log += '\n## ' + keys[i] + '\n' // Prefix Title
+			data += '\n### ' + keys[i] + '\n' // Prefix Title
 			prefixDictionary[keys[i]].forEach(entry => {
-				log += formatLogEntry(entry)
+				data += formatLogEntry(entry)
 			})
 		}
 	}
@@ -208,40 +161,22 @@ function generateLogData() {
 function saveLog() {
 	console.log(chalk.magenta('\n4. Saving Changelog'))
 	const fileName = conf.get('defaultFileName')
-	// If Append Is True, Append To Changelog.md
-	if (isAppend) {
-		if (fs.existsSync(fileName)) {
-			console.log('   Appended into Changelog.md')
-			fs.appendFileSync(fileName, log)
-		}
-		// If Append Is False, Create A New Changelog
-		else {
-			console.log(chalk.red('   Changelog.md not found, saving as new'))
-			const stream = fs.createWriteStream(fileName)
-			stream.once('open', () => {
-				stream.write(log)
-				stream.end()
-			})
-		}
-	} else {
-		console.log('   Saved as ' + title + '.md')
-		const stream = fs.createWriteStream(title + '.md')
-		stream.once('open', () => {
-			stream.write(log)
-			stream.end()
-		})
+	let previousFile = ''
+
+	if (fs.existsSync(fileName)) {
+		previousFile = fs.readFileSync(fileName, 'utf8')
+		const lines = previousFile.split('\n')
+		lines.splice(0, 1)
+		previousFile = lines.join('\n')
 	}
 
-	// Remove Temp Git Log File
-	fs.unlink('tempLog.txt', err => {
-		if (err) {
-			return console.log(
-				chalk.red(
-					chalk.red('\n   Could not remove temporary log file\n   ' + err)
-				)
-			)
-		}
+	const stream = fs.createWriteStream(fileName)
+	stream.once('open', () => {
+		stream.write('# CHANGELOG\n' + data + previousFile)
+		stream.end()
 	})
+
+	console.log('   Saved as ' + fileName)
 }
 
 // Log Entry Format
@@ -256,14 +191,4 @@ function getFirstWord(str) {
 		return str
 	}
 	return str.substr(0, spacePosition)
-}
-
-// Validate Changelog Title
-function validateTitle(str) {
-	return !(str === undefined || str === '')
-}
-
-// Validate Commit Hash
-function validateHash(str) {
-	return !(str === undefined || str.length < 7 || str.match('[^a-z A-Z 0-9_]'))
 }
